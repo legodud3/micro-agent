@@ -53,6 +53,39 @@ class TestAgentHarness(unittest.TestCase):
         self.assertIn("temperature", payload)
         self.assertIn("max_tokens", payload)
 
+    def test_build_request_payload_with_tools_sets_tools_and_tool_choice(self):
+        cfg = {"model": "m", "temperature": 0.1, "max_tokens": 10}
+        tools = [
+            {
+                "type": "function",
+                "function": {"name": "web_search"},
+            }
+        ]
+        payload = ah.build_request_payload(
+            cfg,
+            [{"role": "system", "content": "s"}],
+            tools=tools,
+        )
+        self.assertEqual(payload["tools"], tools)
+        self.assertEqual(payload["tool_choice"], "auto")
+
+    def test_parse_tool_calls_empty_when_missing(self):
+        resp = {"choices": [{"message": {"content": "hi"}}]}
+        self.assertEqual(ah.parse_tool_calls(resp), [])
+
+    def test_parse_tool_call_arguments_parses_json_string(self):
+        tool_call = {
+            "function": {"arguments": '{"query":"cats","max_results":3}'}
+        }
+        args = ah.parse_tool_call_arguments(tool_call)
+        self.assertEqual(args["query"], "cats")
+        self.assertEqual(args["max_results"], 3)
+
+    def test_tavily_web_search_dry_run(self):
+        res = ah.tavily_web_search("cats", max_results=2, dry_run=True)
+        self.assertEqual(res["query"], "cats")
+        self.assertEqual(res["results"], [])
+
     def test_parse_assistant_text_happy_path(self):
         resp = {
             "choices": [
