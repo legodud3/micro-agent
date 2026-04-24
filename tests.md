@@ -1,7 +1,8 @@
-# TDD test plan (stdlib `unittest`, OpenRouter, no tools)
+# TDD test plan (stdlib `unittest`, OpenRouter + Tavily)
 
 ## Assumptions
-- Code lives in `agent_harness.py`.
+- Terminal loop lives in `agent_harness.py`.
+- Loading, OpenRouter, tools, and tool loop live in small modules.
 - Tests run without hitting the network (we’ll use `--dry-run` or isolate network calls).
 
 ## Test cases to write
@@ -18,10 +19,10 @@
    - Given: empty conversation history
    - Expect: first message is `{role: "system", content: ...}`.
 
-4. **test_build_messages_appends_user_and_history_across_turns**
-   - Given: history already has one prior user+assistant turn
-   - When: building messages for a new user input
-   - Expect: newest user message is appended and prior turns are preserved.
+4. **test_build_messages_prepends_system_to_history**
+   - Given: history already has prior turns
+   - When: building messages
+   - Expect: system prompt is first and history is preserved.
 
 5. **test_build_request_payload_matches_openrouter_shape**
    - Expect payload has at least:
@@ -41,6 +42,30 @@
 8. **test_terminal_exit_commands**
    - Given: user input is `exit` or `quit`
    - Expect: loop stops (can be tested by factoring loop decision into a small function).
+
+9. **test_build_request_payload_with_tools_sets_tools_and_tool_choice**
+   - Given: a tool definition
+   - Expect: payload includes `tools` and `tool_choice: auto`.
+
+10. **test_parse_tool_calls_empty_when_missing**
+   - Given: a normal assistant response
+   - Expect: no tool calls.
+
+11. **test_parse_tool_call_arguments_parses_json_string**
+   - Given: tool-call arguments as JSON text
+   - Expect: parsed dict.
+
+12. **test_tavily_web_search_dry_run**
+   - Given: dry-run search
+   - Expect: no network call and empty results.
+
+13. **test_run_assistant_with_tools_dry_run_trace**
+   - Given: dry-run tool loop with trace on
+   - Expect: trace lines print and a dry-run answer returns.
+
+14. **test_run_assistant_with_tools_stops_at_iteration_limit**
+   - Given: model keeps requesting tools
+   - Expect: loop stops at `max_tool_iterations`.
 
 ## Suggested test layout
 - Create `test_agent_harness.py`
