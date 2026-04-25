@@ -203,9 +203,50 @@ class TestAgentHarness(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "no choices"):
             ah.validate_chat_response({"choices": []})
 
+    def test_parse_slash_command(self):
+        self.assertEqual(ah.parse_slash_command("/"), ("/", ""))
+        self.assertEqual(ah.parse_slash_command(" /tool  "), ("/tool", ""))
+        self.assertEqual(ah.parse_slash_command("/help what can you do?"), ("/help", "what can you do?"))
+        self.assertEqual(ah.parse_slash_command("hello"), ("", ""))
+
+    def test_slash_commands_text_lists_expected_commands(self):
+        text = ah.slash_commands_text()
+        self.assertIn("/tool", text)
+        self.assertIn("/help", text)
+
+    def test_tools_list_text_lists_web_search(self):
+        text = ah.tools_list_text()
+        self.assertIn("web_search", text)
+        self.assertIn("Search the public web", text)
+
+    def test_handle_slash_command_bare_slash(self):
+        text = ah.handle_slash_command(
+            "/",
+            cfg={"model": "m", "temperature": 0.1, "max_tokens": 10},
+            api_key=None,
+            base_url="https://example.com",
+            dry_run=True,
+            trace=False,
+        )
+        self.assertIsNotNone(text)
+        self.assertIn("Slash commands", text)
+
+    def test_handle_slash_command_help_without_question_reads_help_md(self):
+        text = ah.handle_slash_command(
+            "/help",
+            cfg={"model": "m", "temperature": 0.1, "max_tokens": 10},
+            api_key=None,
+            base_url="https://example.com",
+            dry_run=True,
+            trace=False,
+        )
+        self.assertIsNotNone(text)
+        self.assertIn("micro-agent v0.2 help", text)
+
     def test_should_exit(self):
         self.assertTrue(ah.should_exit("exit"))
         self.assertTrue(ah.should_exit("  Quit  "))
+        self.assertTrue(ah.should_exit("/exit"))
         self.assertFalse(ah.should_exit("hello"))
 
     def test_parse_env_file_sets_env(self):
@@ -219,6 +260,56 @@ class TestAgentHarness(unittest.TestCase):
 
             ah.parse_env_file(env_path)
             self.assertEqual(os.environ.get("OPENROUTER_API_KEY"), "abc123")
+
+    def test_model_list_and_set_persist(self):
+        # Monkeypatch get_model_summaries to avoid network.
+        real_get_models = getattr(ah, "get_model_summaries")
+        try:
+            ah.get_model_summaries = lambda base_url, api_key, limit=15: [
+                {"id": "provider/model-a", "name": "Model A", "description": "Good text model"},
+                {"id": "provider/model-b", "name": "Model B", "description": "Another model"},
+            ]
+
+            with tempfile.TemporaryDirectory() as td:
+                cwd = os.getcwd()
+                try:
+                    os.chdir(td)
+                    # Seed a config.json
+                    cfg = {"model": "provider/model-a", "temperature": 0.1, "max_tokens": 10, "base_url": "https://openrouter.ai/api/v1/chat/completions"}
+                    with open("config.json", "w", encoding="utf-8") as f:
+                        json.dump(cfg, f)
+
+                    # List models
+                    out = ah.handle_slash_command(
+                        "/model",
+                        cfg=cfg,
+                        api_key=None,
+                        base_url=cfg["base_url"],
+                        dry_run=True,
+                        trace=False,
+                    )
+                    self.assertIn("provider/model-a", out)
+                    self.assertIn("provider/model-b", out)
+
+                    # Set model to model-b via shorthand
+                    out2 = ah.handle_slash_command(
+                        "/model provider/model-b",
+                        cfg=cfg,
+                        api_key=None,
+                        base_url=cfg["base_url"],
+                        dry_run=True,
+                        trace=False,
+                    )
+                    self.assertIn("Active model set to: provider/model-b", out2)
+
+                    # Verify persisted
+                    with open("config.json", "r", encoding="utf-8") as f:
+                        new_cfg = json.load(f)
+                    self.assertEqual(new_cfg.get("model"), "provider/model-b")
+                finally:
+                    os.chdir(cwd)
+        finally:
+            ah.get_model_summaries = real_get_models
 
 
 if __name__ == "__main__":

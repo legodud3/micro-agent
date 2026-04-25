@@ -11,7 +11,8 @@ from openrouter_client import (
     call_openrouter,
     validate_chat_response,
 )
-from tools.web_search import tavily_web_search, web_search_tool_definition
+from tools.registry import get_tool_schemas
+from tools.web_search import tavily_web_search
 
 
 def trace_line(enabled: bool, text: str) -> None:
@@ -67,11 +68,11 @@ def run_assistant_with_tools(
     base_url: str,
     dry_run: bool,
     trace: bool = False,
-    max_tool_iterations: int = 10,
+    max_tool_iterations: int = 5,
 ) -> str:
     """Run OpenRouter until a final assistant message is produced."""
 
-    tools = [web_search_tool_definition()]
+    tools = get_tool_schemas()
 
     for iteration in range(1, max_tool_iterations + 1):
         trace_line(trace, f"iteration {iteration}: calling model")

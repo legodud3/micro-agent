@@ -7,6 +7,14 @@ import os
 from typing import Any
 
 
+def write_config(cfg: dict[str, Any], path: str = "config.json") -> None:
+    """Persist the config dict back to JSON (pretty-printed)."""
+
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+
+
 def parse_env_file(path: str = ".env") -> None:
     """Read KEY=VALUE lines from a .env file into os.environ."""
 
