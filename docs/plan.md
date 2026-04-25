@@ -18,3 +18,6 @@
 17. Add `--dry-run` so the terminal flow can run without network calls.
 18. Test pure helpers with stdlib `unittest`.
 19. Run tests with `python3 -m unittest -v`.
+20. Keep slash commands local; do not add them to chat history.
+21. Use `docs/help.md` as the `/help` source of truth.
+22. Follow `docs/AGENTS.md` when changing the codebase.
