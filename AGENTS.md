@@ -17,6 +17,7 @@ Follow these rules when changing this repo.
   - `tool_loop.py` runs the main model -> tool -> model loop (and optional verifier QC).
   - `agents/` contains sub-agent code and prompts (e.g. verifier/QC).
   - `tools/` contains tool definitions/executors.
+- Use `.md` for system prompts and instructions to allow for better structure and readability.
 - Preserve plain-language comments and docstrings.
 - Add a short comment before each meaningful code block explaining what it does.
 - Avoid framework/tooling churn unless explicitly requested.

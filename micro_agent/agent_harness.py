@@ -240,8 +240,8 @@ def run_chat(
 
     parse_env_file(".env")
     cfg = load_config("micro_agent/config.json")
-    micro_system_prompt = load_system_prompt("micro_agent/system_prompt.txt")
-    verifier_system_prompt = load_system_prompt("micro_agent/agents/verifier_system_prompt.txt")
+    micro_system_prompt = load_system_prompt("micro_agent/system_prompt.md")
+    verifier_system_prompt = load_system_prompt("micro_agent/agents/verifier_system_prompt.md")
 
     api_key = os.environ.get("OPENROUTER_API_KEY")
     base_url = cfg["base_url"]

@@ -99,14 +99,36 @@ def run_verifier(
     if not api_key:
         raise ValueError("Missing OPENROUTER_API_KEY in environment.")
 
-    # What we send to the verifier: its system prompt + a user message that
-    # includes the main system prompt + the conversation history.
+    # Instead of sending the entire raw history, we extract the core components
+    # to prevent "Role Bleed" where the verifier starts chatting with the user.
+    user_query = ""
+    last_assistant_draft = ""
+    tool_results = []
+
+    for m in history:
+        role = m.get("role")
+        if role == "user":
+            user_query = m.get("content", "")
+        elif role == "assistant":
+            last_assistant_draft = m.get("content", "")
+        elif role == "tool":
+            try:
+                # Store the raw content or a summary of the tool result
+                tool_results.append(m.get("content", ""))
+            except Exception:
+                pass
+
     verifier_history = [
         {
             "role": "user",
-            "content": "Main agent system prompt (used to check instruction adherence):\n" + main_system_prompt,
+            "content": (
+                f"MAIN AGENT SYSTEM PROMPT:\n{main_system_prompt}\n\n"
+                f"ORIGINAL USER QUERY:\n{user_query}\n\n"
+                f"TOOL RESULTS (EVIDENCE):\n{json.dumps(tool_results)}\n\n"
+                f"ASSISTANT DRAFT TO VERIFY:\n{last_assistant_draft}"
+            ),
         }
-    ] + history
+    ]
 
     messages = build_messages(verifier_system_prompt, verifier_history)
     payload = build_request_payload(verifier_cfg, messages, tools=None)
@@ -115,10 +137,23 @@ def run_verifier(
         print("[trace] verifier: calling model")
 
     resp_json = call_openrouter(payload, api_key=api_key, base_url=base_url)
+    if trace:
+        print(f"[trace] verifier raw resp: {json.dumps(resp_json)}")
+
     msg = validate_chat_response(resp_json)
     content = msg.get("content") or ""
 
-    qc = parse_qc_json(content)
+    if trace:
+        print(f"[trace] verifier response: {repr(content)}")
+
+    try:
+        qc = parse_qc_json(content)
+    except ValueError as e:
+        if trace:
+            print(f"[trace] verifier json parse failed: {e}")
+        # If the verifier fails to return JSON, we treat it as a rejection so the main agent tries again.
+        # (Alternatively, we could approve, but failing safe is usually better).
+        qc = {"status": QC_STATUS_REJECT, "issues": [f"Verifier returned invalid format: {content.strip() or 'Empty response'}"]}
 
     if trace:
         print(f"[trace] verifier: {qc['status']} ({len(qc['issues'])} issue(s))")

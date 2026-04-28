@@ -60,7 +60,7 @@ The verifier uses its model/params to judge the main agent’s latest draft and 
 - `status`: `approve` or `reject`
 - `issues`: `[]` when approved, otherwise a list of issues.
 
-Its instruction file lives at `micro_agent/agents/verifier_system_prompt.txt`.
+Its instruction file lives at `micro_agent/agents/verifier_system_prompt.md`.
 
 ## CLI flags
 ### `--dry-run`

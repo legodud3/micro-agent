@@ -136,7 +136,10 @@ def run_assistant_with_tools(
                     f"- {i}" for i in issues
                 )
                 history.append({"role": "verifier", "content": feedback_text})
+                
                 trace_line(trace, f"iteration {iteration}: verifier rejected ({len(issues)} issue(s)); retrying")
+                for issue in issues:
+                    trace_line(trace, f"  -> {issue}")
                 
                 verifier_retries += 1
                 continue
@@ -163,8 +166,14 @@ def run_assistant_with_tools(
 
             try:
                 if tool_name == "web_search":
+                    # Handle models that mistakenly send 'queries' (list) instead of 'query' (str)
+                    query_arg = args.get("query")
+                    if not query_arg and "queries" in args:
+                        qs = args.get("queries")
+                        query_arg = qs[0] if isinstance(qs, list) and qs else str(qs)
+                    
                     tool_result = tavily_web_search(
-                        query=str(args.get("query", "")),
+                        query=str(query_arg or ""),
                         max_results=int(args.get("max_results", 5)),
                         dry_run=dry_run,
                     )

@@ -8,10 +8,10 @@
   - `micro_agent/openrouter_client.py` — OpenRouter request/response helpers
   - `micro_agent/tool_loop.py` — main model -> tool -> model loop (+ verifier QC)
   - `micro_agent/agents/verifier_agent.py` — verifier/QC sub-agent
-  - `micro_agent/agents/verifier_system_prompt.txt` — verifier prompt text
+  - `micro_agent/agents/verifier_system_prompt.md` — verifier prompt text
   - `micro_agent/tools/web_search.py` — Tavily `web_search` tool
 - `micro_agent/config.json` — config for `micro_agent` and `verifier`
-- `micro_agent/system_prompt.txt` — main agent system prompt
+- `micro_agent/system_prompt.md` — main agent system prompt
 - `.env.example` — copy to `.env` and set API keys
 - `docs/help.md` — source of truth for `/help`
 - `docs/learnings.md` — personal learning notes by coding session
