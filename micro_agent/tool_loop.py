@@ -76,6 +76,7 @@ def run_assistant_with_tools(
     """Run OpenRouter with tools, then optionally QC-verify and retry."""
 
     tools = get_tool_schemas()
+    verifier_retries = 0
 
     for iteration in range(1, max_tool_iterations + 1):
         trace_line(trace, f"iteration {iteration}: calling model")
@@ -109,6 +110,12 @@ def run_assistant_with_tools(
 
             # Optional: run the verifier QC and ask the main agent to revise on reject.
             if verifier_cfg and verifier_system_prompt:
+                max_verifier_retries = 3
+                
+                if verifier_retries >= max_verifier_retries:
+                    trace_line(trace, f"iteration {iteration}: final answer (verifier retry limit reached)")
+                    return content
+                    
                 qc = run_verifier(
                     verifier_cfg=verifier_cfg,
                     verifier_system_prompt=verifier_system_prompt,
@@ -130,6 +137,8 @@ def run_assistant_with_tools(
                 )
                 history.append({"role": "verifier", "content": feedback_text})
                 trace_line(trace, f"iteration {iteration}: verifier rejected ({len(issues)} issue(s)); retrying")
+                
+                verifier_retries += 1
                 continue
 
             trace_line(trace, f"iteration {iteration}: final answer")

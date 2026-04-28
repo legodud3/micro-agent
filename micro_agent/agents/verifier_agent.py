@@ -27,6 +27,8 @@ def parse_qc_json(text: str) -> dict[str, Any]:
     """Parse verifier JSON output with a small amount of robustness."""
 
     s = text.strip()
+    if not s:
+        return {"status": QC_STATUS_REJECT, "issues": ["Empty response"]}
 
     # Try direct JSON first.
     try:
