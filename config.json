@@ -1,6 +1,0 @@
-{
-  "model": "deepseek/deepseek-v4-flash",
-  "temperature": 0.7,
-  "max_tokens": 8000,
-  "base_url": "https://openrouter.ai/api/v1/chat/completions"
-}

@@ -8,9 +8,22 @@ from typing import Any, Optional
 
 
 def build_messages(system_prompt: str, history: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Put the system prompt before the current conversation history."""
+    """Put the system prompt before the current conversation history.
 
-    return [{"role": "system", "content": system_prompt}] + history
+    OpenRouter follows the OpenAI-style role set (system/user/assistant/tool).
+    Internally we may store additional roles (e.g. "verifier") for orchestration
+    and map them to a supported role when sending.
+    """
+
+    mapped_history: list[dict[str, Any]] = []
+    for m in history:
+        role = m.get("role")
+        if role == "verifier":
+            mapped_history.append({"role": "user", "content": m.get("content", "")})
+        else:
+            mapped_history.append(m)
+
+    return [{"role": "system", "content": system_prompt}] + mapped_history
 
 
 def build_request_payload(

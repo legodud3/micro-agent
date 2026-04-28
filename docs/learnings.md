@@ -20,9 +20,8 @@ Personal notes from building micro-agent.
 ## Session 3 — Slash commands and docs
 - This entire session was just overkill
 - Agents.md is useful as various coding agents will work on this repo but beyond that it's all garbage
-- 
 
-## Later sessions
-- XX
+## Session 4 - Sub agents
+- Verifier agents for QC
 - XX
 - XX

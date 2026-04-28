@@ -14,7 +14,8 @@ Follow these rules when changing this repo.
   - `agent_harness.py` handles terminal UX and slash-command routing.
   - `config_loader.py` loads local config and prompts.
   - `openrouter_client.py` handles OpenRouter request/response helpers.
-  - `tool_loop.py` runs the model -> tool -> model loop.
+  - `tool_loop.py` runs the main model -> tool -> model loop (and optional verifier QC).
+  - `agents/` contains sub-agent code and prompts (e.g. verifier/QC).
   - `tools/` contains tool definitions/executors.
 - Preserve plain-language comments and docstrings.
 - Add a short comment before each meaningful code block explaining what it does.

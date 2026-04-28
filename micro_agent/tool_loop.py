@@ -5,14 +5,15 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from openrouter_client import (
+from .openrouter_client import (
     build_messages,
     build_request_payload,
     call_openrouter,
     validate_chat_response,
 )
-from tools.registry import get_tool_schemas
-from tools.web_search import tavily_web_search
+from .tools.registry import get_tool_schemas
+from .tools.web_search import tavily_web_search
+from .agents.verifier_agent import QC_STATUS_APPROVE, QC_STATUS_REJECT, run_verifier
 
 
 def trace_line(enabled: bool, text: str) -> None:
@@ -68,9 +69,11 @@ def run_assistant_with_tools(
     base_url: str,
     dry_run: bool,
     trace: bool = False,
-    max_tool_iterations: int = 5,
+    max_tool_iterations: int = 50,
+    verifier_cfg: dict[str, Any] | None = None,
+    verifier_system_prompt: str | None = None,
 ) -> str:
-    """Run OpenRouter until a final assistant message is produced."""
+    """Run OpenRouter with tools, then optionally QC-verify and retry."""
 
     tools = get_tool_schemas()
 
@@ -103,6 +106,32 @@ def run_assistant_with_tools(
         if not tool_calls:
             content = assistant_msg.get("content") or ""
             history.append({"role": "assistant", "content": content})
+
+            # Optional: run the verifier QC and ask the main agent to revise on reject.
+            if verifier_cfg and verifier_system_prompt:
+                qc = run_verifier(
+                    verifier_cfg=verifier_cfg,
+                    verifier_system_prompt=verifier_system_prompt,
+                    main_system_prompt=system_prompt,
+                    history=history,
+                    api_key=api_key,
+                    base_url=base_url,
+                    dry_run=dry_run,
+                    trace=trace,
+                )
+
+                if qc.get("status") == QC_STATUS_APPROVE:
+                    trace_line(trace, f"iteration {iteration}: final answer (verified)")
+                    return content
+
+                issues = qc.get("issues") or []
+                feedback_text = "Verifier QC rejected. Issues:\n" + "\n".join(
+                    f"- {i}" for i in issues
+                )
+                history.append({"role": "verifier", "content": feedback_text})
+                trace_line(trace, f"iteration {iteration}: verifier rejected ({len(issues)} issue(s)); retrying")
+                continue
+
             trace_line(trace, f"iteration {iteration}: final answer")
             return content
 

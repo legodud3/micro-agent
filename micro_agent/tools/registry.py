@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from tools.web_search import web_search_tool_definition
+from .web_search import web_search_tool_definition
 
 
 def get_tool_schemas() -> list[dict[str, Any]]:

@@ -6,6 +6,7 @@ This document is the source of truth for the `/help` command.
 micro-agent is a small terminal chat agent that:
 - sends normal chat messages to OpenRouter
 - lets the model call approved tools when needed
+- runs a separate “verifier QC” sub-agent after the main draft is done (and may ask the main agent to revise)
 - currently supports one model tool: `web_search`
 
 ## Slash commands
@@ -46,12 +47,20 @@ Required environment variables:
 - `OPENROUTER_API_KEY` — required for model calls
 - `TAVILY_API_KEY` — required for `web_search`
 
+Optional environment variables:
+- `MICRO_AGENT_LOCATION` (or `LOCATION`) — a short location hint (city/region/country) that will be included in every user prompt.
+
 ### `config.json`
 Controls:
-- `model`
-- `temperature`
-- `max_tokens`
 - `base_url`
+- `micro_agent` (the main model + generation params)
+- `verifier` (the QC/verifier model + params)
+
+The verifier uses its model/params to judge the main agent’s latest draft and returns JSON:
+- `status`: `approve` or `reject`
+- `issues`: `[]` when approved, otherwise a list of issues.
+
+Its instruction file lives at `micro_agent/agents/verifier_system_prompt.txt`.
 
 ## CLI flags
 ### `--dry-run`
@@ -62,7 +71,11 @@ Prints model/tool loop trace lines.
 
 ### `--max-tool-iterations N`
 Sets the safety cap for model/tool iterations per normal user message.
-Default: `5`.
+Default: `50`.
+
+This cap includes both:
+- the main agent’s tool-call iterations, and
+- any “main agent revise” rounds triggered by verifier rejection.
 
 ## What micro-agent cannot do yet
 micro-agent does not currently have model tools for:
@@ -75,4 +88,4 @@ micro-agent does not currently have model tools for:
 The only local file used for self-help is `docs/help.md`.
 
 ## Developer note
-Coding assistants working on this repo should follow `docs/AGENTS.md` and keep this file updated whenever user-facing behavior changes.
+Coding assistants working on this repo should follow the repo’s `AGENTS.md` and keep this file updated whenever user-facing behavior changes.

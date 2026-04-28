@@ -5,8 +5,9 @@ import unittest
 from contextlib import redirect_stdout
 from io import StringIO
 
-import agent_harness as ah
-import tool_loop as tl
+from micro_agent import agent_harness as ah
+from micro_agent import agent_harness as mah
+from micro_agent import tool_loop as tl
 
 
 class TestAgentHarness(unittest.TestCase):
@@ -249,6 +250,19 @@ class TestAgentHarness(unittest.TestCase):
         self.assertTrue(ah.should_exit("/exit"))
         self.assertFalse(ah.should_exit("hello"))
 
+    def test_user_context_line_includes_location(self):
+        prev = os.environ.get("MICRO_AGENT_LOCATION")
+        try:
+            os.environ["MICRO_AGENT_LOCATION"] = "Testville"
+            text = ah.user_context_line()
+            self.assertIn("System date/time:", text)
+            self.assertIn("Location: Testville", text)
+        finally:
+            if prev is None:
+                os.environ.pop("MICRO_AGENT_LOCATION", None)
+            else:
+                os.environ["MICRO_AGENT_LOCATION"] = prev
+
     def test_parse_env_file_sets_env(self):
         with tempfile.TemporaryDirectory() as td:
             env_path = os.path.join(td, ".env")
@@ -263,9 +277,9 @@ class TestAgentHarness(unittest.TestCase):
 
     def test_model_list_and_set_persist(self):
         # Monkeypatch get_model_summaries to avoid network.
-        real_get_models = getattr(ah, "get_model_summaries")
+        real_get_models = getattr(mah, "get_model_summaries")
         try:
-            ah.get_model_summaries = lambda base_url, api_key, limit=15: [
+            mah.get_model_summaries = lambda base_url, api_key, limit=15: [
                 {"id": "provider/model-a", "name": "Model A", "description": "Good text model"},
                 {"id": "provider/model-b", "name": "Model B", "description": "Another model"},
             ]
@@ -275,7 +289,11 @@ class TestAgentHarness(unittest.TestCase):
                 try:
                     os.chdir(td)
                     # Seed a config.json
-                    cfg = {"model": "provider/model-a", "temperature": 0.1, "max_tokens": 10, "base_url": "https://openrouter.ai/api/v1/chat/completions"}
+                    cfg = {
+                        "base_url": "https://openrouter.ai/api/v1/chat/completions",
+                        "micro_agent": {"model": "provider/model-a", "temperature": 0.1, "max_tokens": 10},
+                        "verifier": {"model": "provider/model-a", "temperature": 0.2, "max_tokens": 800},
+                    }
                     with open("config.json", "w", encoding="utf-8") as f:
                         json.dump(cfg, f)
 
@@ -305,11 +323,11 @@ class TestAgentHarness(unittest.TestCase):
                     # Verify persisted
                     with open("config.json", "r", encoding="utf-8") as f:
                         new_cfg = json.load(f)
-                    self.assertEqual(new_cfg.get("model"), "provider/model-b")
+                    self.assertEqual(new_cfg["micro_agent"].get("model"), "provider/model-b")
                 finally:
                     os.chdir(cwd)
         finally:
-            ah.get_model_summaries = real_get_models
+            mah.get_model_summaries = real_get_models
 
 
 if __name__ == "__main__":
