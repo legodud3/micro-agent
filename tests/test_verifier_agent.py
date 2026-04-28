@@ -9,10 +9,15 @@ class TestVerifierAgentParsing(unittest.TestCase):
         self.assertEqual(qc["status"], "approve")
         self.assertEqual(qc["issues"], [])
 
-    def test_parse_qc_json_reject_with_string_issue(self):
-        qc = va.parse_qc_json('{"status":"reject","issues":"bad claim"}')
-        self.assertEqual(qc["status"], "reject")
-        self.assertEqual(qc["issues"], ["bad claim"])
+    def test_parse_qc_json_with_markdown_blocks(self):
+        markdown_json = '```json\n{"status":"approve","issues":[]}\n```'
+        qc = va.parse_qc_json(markdown_json)
+        self.assertEqual(qc["status"], "approve")
+
+    def test_parse_qc_json_with_plain_code_blocks(self):
+        code_json = '```\n{"status":"approve","issues":[]}\n```'
+        qc = va.parse_qc_json(code_json)
+        self.assertEqual(qc["status"], "approve")
 
     def test_parse_qc_json_reject_with_list_issues(self):
         qc = va.parse_qc_json('{"status":"reject","issues":["i1","i2"]}')

@@ -33,6 +33,14 @@ def parse_qc_json(text: str) -> dict[str, Any]:
         obj = json.loads(s)
     except json.JSONDecodeError:
         # Fall back to extracting the first JSON object in the string.
+        # Handle cases where model adds markdown code block markers.
+        if s.startswith("```json"):
+            s = s[7:]
+        if s.startswith("```"):
+            s = s[3:]
+        if s.endswith("```"):
+            s = s[:-3]
+        
         start = s.find("{")
         end = s.rfind("}")
         if start == -1 or end == -1 or end <= start:
